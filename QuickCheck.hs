@@ -62,13 +62,14 @@ prop_qsort_nn_min xs =
 
 prop_qsort_nn_max :: [Int] -> Property
 prop_qsort_nn_max xs =
-  undefined
+  not (null xs) ==> last (qsort xs) == maximum xs
 
 prop_qsort_sort :: [Int] -> Bool
 prop_qsort_sort xs = qsort xs == List.sort xs
 
 isDistinct :: Eq a => [a] -> Bool
-isDistinct = undefined
+isDistinct (x : xs) = x `notElem` xs && isDistinct xs
+isDistinct [] = True
 
 prop_qsort_distinct :: [Int] -> Bool
 prop_qsort_distinct = isDistinct . qsort
@@ -116,13 +117,13 @@ genPair :: Gen a -> Gen b -> Gen (a, b)
 genPair = liftM2 (,) -- a generator for pairs
 
 genBool :: Gen Bool
-genBool = undefined
+genBool = choose (True, False)
 
 genTriple :: Gen a -> Gen b -> Gen c -> Gen (a, b, c)
-genTriple = undefined
+genTriple = liftM3 (,,)
 
 genMaybe :: Gen a -> Gen (Maybe a)
-genMaybe ga = undefined
+genMaybe ga = oneof [return Nothing, fmap Just ga]
 
 genList1 :: (Arbitrary a) => Gen [a]
 genList1 = liftM2 (:) arbitrary genList1
@@ -156,7 +157,11 @@ data Tree a = Empty | Branch a (Tree a) (Tree a) deriving (Show)
 instance Arbitrary a => Arbitrary (Tree a) where
   arbitrary = sized gen
     where
-      gen n = undefined
+      gen n =
+        frequency
+          [ (1, return Empty),
+            (n, liftM3 Branch arbitrary (gen (n `div` 2)) (gen (n `div` 2)))
+          ]
 
 genOrdList :: (Arbitrary a, Ord a) => Gen [a]
 genOrdList = fmap List.sort genList3
